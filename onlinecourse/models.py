@@ -108,6 +108,7 @@ class Enrollment(models.Model):
     rating = models.FloatField(default=5.0)
 
 
+
 class Question(models.Model):
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
     question_text = models.TextField()
@@ -117,20 +118,16 @@ class Question(models.Model):
         return "Question: " + self.question_text
 
     def is_get_score(self, selected_ids):
-        correct_ids = set(
-            self.choice_set.filter(is_correct=True)
-            .values_list("id", flat=True)
-        )
-        selected_ids = set(selected_ids)
+        all_answers = self.choice_set.filter(
+            is_correct=True
+        ).count()
 
-        question_choice_ids = set(
-            self.choice_set.values_list("id", flat=True)
-        )
-        selected_for_question = selected_ids.intersection(
-            question_choice_ids
-        )
+        selected_correct = self.choice_set.filter(
+            is_correct=True,
+            id__in=selected_ids
+        ).count()
 
-        return correct_ids == selected_for_question
+        return all_answers == selected_correct
 
 
 class Choice(models.Model):
@@ -145,12 +142,12 @@ class Choice(models.Model):
 class Submission(models.Model):
     enrollment = models.ForeignKey(
         Enrollment,
-        on_delete=models.CASCADE,
+        on_delete=models.CASCADE
     )
     choices = models.ManyToManyField(Choice)
 
     def __str__(self):
         return (
-            f"Submission by {self.enrollment.user.username} "
-            f"for {self.enrollment.course.name}"
+            f"Submission {self.id} for enrollment "
+            f"{self.enrollment.id}"
         )
