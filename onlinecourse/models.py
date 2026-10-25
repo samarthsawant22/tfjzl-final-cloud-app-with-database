@@ -28,6 +28,7 @@ class Learner(models.Model):
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
     )
+
     STUDENT = "student"
     DEVELOPER = "developer"
     DATA_SCIENTIST = "data_scientist"
@@ -82,6 +83,9 @@ class Lesson(models.Model):
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
     content = models.TextField()
 
+    def __str__(self):
+        return self.title
+
 
 class Enrollment(models.Model):
     AUDIT = "audit"
@@ -107,6 +111,8 @@ class Enrollment(models.Model):
     )
     rating = models.FloatField(default=5.0)
 
+    def __str__(self):
+        return f"{self.user.username} - {self.course.name}"
 
 
 class Question(models.Model):
@@ -114,8 +120,8 @@ class Question(models.Model):
     question_text = models.TextField()
     grade = models.IntegerField(default=1)
 
-   def __str__(self):
-    return self.question_text
+    def __str__(self):
+        return self.question_text
 
     def is_get_score(self, selected_ids):
         all_answers = self.choice_set.filter(
@@ -131,7 +137,10 @@ class Question(models.Model):
 
 
 class Choice(models.Model):
-    question = models.ForeignKey(Question, on_delete=models.CASCADE)
+    question = models.ForeignKey(
+        Question,
+        on_delete=models.CASCADE,
+    )
     choice_text = models.CharField(max_length=100)
     is_correct = models.BooleanField(default=False)
 
@@ -142,12 +151,9 @@ class Choice(models.Model):
 class Submission(models.Model):
     enrollment = models.ForeignKey(
         Enrollment,
-        on_delete=models.CASCADE
+        on_delete=models.CASCADE,
     )
     choices = models.ManyToManyField(Choice)
 
     def __str__(self):
-        return (
-            f"Submission {self.id} for enrollment "
-            f"{self.enrollment.id}"
-        )
+        return f"Submission {self.id} for enrollment {self.enrollment.id}"
