@@ -114,8 +114,8 @@ class Question(models.Model):
     question_text = models.TextField()
     grade = models.IntegerField(default=1)
 
-    def __str__(self):
-        return "Question: " + self.question_text
+   def __str__(self):
+    return self.question_text
 
     def is_get_score(self, selected_ids):
         all_answers = self.choice_set.filter(
