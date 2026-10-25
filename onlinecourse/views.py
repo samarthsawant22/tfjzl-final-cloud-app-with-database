@@ -30,28 +30,27 @@ def registration_request(request):
             context,
         )
 
-    if request.method == "POST":
-        username = request.POST["username"]
-        password = request.POST["psw"]
-        first_name = request.POST["firstname"]
-        last_name = request.POST["lastname"]
+    username = request.POST["username"]
+    password = request.POST["psw"]
+    first_name = request.POST["firstname"]
+    last_name = request.POST["lastname"]
 
-        if User.objects.filter(username=username).exists():
-            context["message"] = "User already exists."
-            return render(
-                request,
-                "onlinecourse/user_registration_bootstrap.html",
-                context,
-            )
-
-        user = User.objects.create_user(
-            username=username,
-            first_name=first_name,
-            last_name=last_name,
-            password=password,
+    if User.objects.filter(username=username).exists():
+        context["message"] = "User already exists."
+        return render(
+            request,
+            "onlinecourse/user_registration_bootstrap.html",
+            context,
         )
-        login(request, user)
-        return redirect("onlinecourse:index")
+
+    user = User.objects.create_user(
+        username=username,
+        first_name=first_name,
+        last_name=last_name,
+        password=password,
+    )
+    login(request, user)
+    return redirect("onlinecourse:index")
 
 
 def login_request(request):
@@ -71,11 +70,6 @@ def login_request(request):
             return redirect("onlinecourse:index")
 
         context["message"] = "Invalid username or password."
-        return render(
-            request,
-            "onlinecourse/user_login_bootstrap.html",
-            context,
-        )
 
     return render(
         request,
@@ -104,8 +98,8 @@ class CourseListView(generic.ListView):
     context_object_name = "course_list"
 
     def get_queryset(self):
-        user = self.request.user
         courses = Course.objects.order_by("-total_enrollment")[:10]
+        user = self.request.user
 
         for course in courses:
             course.is_enrolled = check_if_enrolled(user, course)
@@ -115,17 +109,14 @@ class CourseListView(generic.ListView):
 
 class CourseDetailView(generic.DetailView):
     model = Course
-    template_name = "onlinecourse/templates/onlinecourse/course_details_bootstrap.html"
+    template_name = "onlinecourse/course_details_bootstrap.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        course = self.object
-
         context["is_enrolled"] = check_if_enrolled(
             self.request.user,
-            course,
+            self.object,
         )
-
         return context
 
 
@@ -139,7 +130,6 @@ def enroll(request, course_id):
             course=course,
             mode="honor",
         )
-
         course.total_enrollment += 1
         course.save()
 
@@ -167,18 +157,15 @@ def submit(request, course_id):
         course=course,
     )
 
-    submission = Submission.objects.create(
-        enrollment=enrollment,
-    )
-
+    submission = Submission.objects.create(enrollment=enrollment)
     selected_ids = extract_answers(request)
 
-    valid_choices = Choice.objects.filter(
-        question__course=course,
-        id__in=selected_ids,
+    submission.choices.set(
+        Choice.objects.filter(
+            question__course=course,
+            id__in=selected_ids,
+        )
     )
-
-    submission.choices.set(valid_choices)
 
     return redirect(
         "onlinecourse:show_exam_result",
@@ -217,7 +204,6 @@ def show_exam_result(request, course_id, submission_id):
     )
 
     questions = course.question_set.prefetch_related("choice_set")
-
     total_score = 0
     possible_score = 0
     question_results = []
@@ -248,6 +234,7 @@ def show_exam_result(request, course_id, submission_id):
         "question_results": question_results,
         "grade": total_score,
         "total_score": total_score,
+        "possible": possible_score,
         "possible_score": possible_score,
         "score": (
             round(total_score / possible_score * 100)
